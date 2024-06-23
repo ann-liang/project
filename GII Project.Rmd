@@ -1,6 +1,5 @@
 ---
 title: "GII Project"
-author: "Ann & Lluvia"
 date: "2024-05-09"
 output: html_document
 ---
