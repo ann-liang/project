@@ -1,0 +1,196 @@
+---
+title: "GII Project"
+author: "Ann & Lluvia"
+date: "2024-05-09"
+output: html_document
+---
+Guidelines 
+1. Choose a question 
+2. Get the data 
+3. Clean the data 
+4. Explain the data 
+5. Fit statistical models (optional) 
+6. Communicate the results 
+7. Make your analysis reproducible 
+
+Loading Packages 
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(scales)
+library(dbplyr)
+```
+
+Loading Data 
+```{r}
+GII_data <- read_csv("/Users/ann/Documents/PUBHLTH390R/Project/GII_Data.csv")
+GII <- read_csv("/Users/ann/Documents/PUBHLTH390R/GII.csv")
+```
+
+
+```{r}
+ggplot(data = GII_data) + 
+  geom_point(mapping = aes(x = HDI_rank_2021, y = GII_rank_2021, color = continent)) + 
+  geom_smooth(mapping = aes(x = HDI_rank_2021, y = GII_rank_2021, color = continent), method = "lm", se = FALSE) + 
+  labs(title = "Correlation of HDI and GII Rankings by Continent in 2021", x = "HDI Rank", y = "GII Rank") + 
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"), 
+        plot.subtitle = element_text(hjust = 0.5)
+        ) +
+  scale_x_reverse() + 
+  scale_y_reverse() 
+```
+
+
+```{r}
+r_squared_data <- GII_data %>%
+  group_by(continent) %>%
+  summarise(
+    model = list(lm(GII_rank_2021 ~ HDI_rank_2021)),
+    r_squared = summary(model[[1]])$r.squared
+  )
+
+ggplot(data = GII_data) + 
+  geom_point(mapping = aes(x = HDI_rank_2021, y = GII_rank_2021)) + 
+  geom_smooth(mapping = aes(x = HDI_rank_2021, y = GII_rank_2021), method = "lm", se = TRUE) + 
+  labs(title = "Correlation of HDI and GII Rankings by Each Continent in 2021", x = "HDI Rank", y = "GII Rank") + 
+  facet_wrap(~ continent) + 
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5)) +
+  scale_x_reverse() +  
+  scale_y_reverse() +  
+  geom_text(data = r_squared_data, aes(label = paste("R^2 =", round(r_squared, 2))),
+            x = Inf, y = Inf, hjust = 3.7, vjust = 2, size = 3, color = "red")
+```
+
+
+```{r}
+ggplot(data = GII_data, aes(x = continent, y = GII_2018, color = continent)) + 
+  geom_boxplot() + 
+  labs(title = "Global GII Scores in 2008 by Continents", y = "GII Score") + 
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"), 
+        plot.subtitle = element_text(hjust = 0.5),
+        axis.title.x = element_blank()) 
+```
+
+
+```{r}
+ggplot(data = GII_data, aes(x = continent, y = GII_2020, color = continent)) + 
+  geom_boxplot() + 
+  labs(title = "Global GII Scores in 2020 by Continents", y = "GII Score") + 
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"), 
+        plot.subtitle = element_text(hjust = 0.5),
+        axis.title.x = element_blank()) 
+```
+
+
+```{r}
+# Filter data for the United States
+USA <- filter(GII_data, country == "United States")
+
+# Gather GII scores for each year into a long format
+USA_long <- USA %>%
+  gather(key = "year", value = "GII_score", starts_with("GII_"))
+
+# Convert 'year' to numeric for proper sorting
+USA_long$year <- as.numeric(gsub("GII_", "", USA_long$year, fixed = TRUE))
+
+ggplot(data = USA_long, aes(x = year, y = GII_score)) + 
+  geom_line() +
+  geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
+  labs(title = "2008 Financial Crisis Effect on GII Scores in the U.S.", x = "Year", y = "GII Score") + 
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
+  scale_y_continuous(trans = "log2", limits = c(0.001, 1), breaks = c(0.001, 0.01, 0.1, 1))
+```
+
+
+```{r}
+# Filter data for the United Kingdom
+UK <- filter(GII_data, country == "United Kingdom")
+
+# Gather GII scores for each year into a long format
+UK_long <- UK %>%
+  gather(key = "year", value = "GII_score", starts_with("GII_"))
+
+# Convert 'year' to numeric for proper sorting
+UK_long$year <- as.numeric(gsub("GII_", "", UK_long$year))
+
+# Create the line plot with zoomed-in y-axis and logarithmic scale
+ggplot(data = UK_long, aes(x = year, y = GII_score)) + 
+  geom_line() +
+   geom_vline(xintercept = 2020, linetype = "dashed", color = "red") +
+  labs(title = "2020 Brexit Effect on GII Scores in the U.K.", x = "Year", y = "GII Score") + 
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
+  scale_y_continuous(trans = "log2", limits = c(0.001, 1), breaks = c(0.001, 0.01, 0.1, 1))
+
+```
+
+
+
+```{r}
+europe_specific_countries <- GII_data %>%
+  filter(continent == "Europe" & country %in% c("Denmark", "Romania"))
+```
+
+```{r}
+africa_specific_countries <- GII_data %>%
+  filter(continent == "Africa" & country %in% c("Liberia", "Tunisia", "Nigeria"))
+```
+
+
+```{r}
+asia_specific_countries <- GII_data %>%
+  filter(continent == "Asia" & country %in% c("Singapore", "Yemen"))
+```
+
+
+```{r}
+america_specific_countries <- GII_data %>%
+  filter(continent == "America" & country %in% c("Canada", "Haiti"))
+```
+
+```{r}
+Oceania_specific_countries <- GII_data %>%
+  filter(continent == "Oceania" & country %in% c("Australia", "Papua New Guinea"))
+```
+
+
+```{r}
+all_specific_countries <- GII_data %>%
+  group_by(continent)  %>%
+  filter(country %in% c("Denmark", "Romania", "Liberia", "Tunisia","Singapore", "Yemen", "Canada", "Haiti", "Australia", "Papua New Guinea"))
+```
+
+
+```{r}
+# Gather GII scores for each year into a long format
+all_specific_countries_long <- all_specific_countries %>%
+  gather(key = "year", value = "GII_score", starts_with("GII_"))
+
+# Convert 'year' to numeric for proper sorting
+all_specific_countries_long$year <- as.numeric(gsub("GII_", "", all_specific_countries_long$year))
+
+# Create the line plot with zoomed-in y-axis and logarithmic scale
+ggplot(data = all_specific_countries_long, aes(x = reorder(country, GII_score), y = GII_score, color = continent)) + 
+  geom_boxplot(na.rm = TRUE) +  # Omit NA values
+  labs(title = "Distribution of Countries with Highest and Lowest GII by Continent (1990-2021)", x = NULL, y = "GII Score (1990-2021)") + 
+  facet_grid(~ continent, scales = "free") +
+  theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"), 
+        plot.title.x = element_blank()) +
+  scale_y_reverse() + 
+  scale_y_continuous(trans = "log2", limits = c(0.010, 1), breaks = c(0.010, 0.100, 1))
+```
+
+
+
+
+
+
+
+
